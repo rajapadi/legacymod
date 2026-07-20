@@ -177,6 +177,51 @@ Then (1) add `"pli"` to `_ADAPTER_MODULES` in `adapters/__init__.py`,
 (3) document the fact shapes in the module docstring. Facts flow into
 the graph, docs, and rules automatically.
 
+## Validated against a real estate (AWS CardDemo)
+
+The platform is exercised against
+[AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo)
+(Apache-2.0), a full COBOL/CICS/VSAM/JCL credit-card application built
+as a modernization-tooling test target — code this repo's authors never
+saw while writing the parsers.
+
+**Analysis half** (as of 2026-07-19): 240 artifacts classified, 34,687
+facts from 14 adapters, a 1,000-node knowledge graph — no crashes.
+Accuracy spot-check: the impact query for the `CSUTLDTC` date utility
+reported 4 call edges; a raw grep of the source confirms exactly 4
+`CALL 'CSUTLDTC'` statements in the same 2 programs. Two classification
+gaps this run exposed (`.prc` procs, standalone `.ctl` control cards)
+were fixed in v0.1.1.
+
+**Equivalence half** (as of 2026-07-20): the validation harness ran a
+true Dual Run-style comparison on CBACT01C, the account-extract batch
+job — legacy side compiled and executed by GnuCOBOL 3.2 via the
+oracle, modern side a Python re-implementation, 50 accounts compared
+field by field:
+
+| case | result | legacy ms | modern ms | mismatched fields |
+|---|---|---:|---:|---|
+| case_cbact01c | PASS | 121.2 | 91.2 | - |
+
+The first comparison run failed on exactly one field — and that is the
+point. The legacy program NUL-pads its reformatted reissue date (the
+tail of a work field the original z/OS assembler formatter never
+writes), where any natural re-implementation space-pads; the comparator
+named the field and bytes (`expected '20250520\x00\x00' actual
+'20250520'`). Second find: CardDemo's ASCII data exports keep z/OS
+sign overpunch (`{` = +0) in zoned fields — the COBOL runtime
+normalizes it silently, naive modern code crashes on it. Recipe: load
+the shipped ASCII export into a GnuCOBOL indexed file, stub the one
+assembler CALL (`COBDATFT`) as a COBOL module in the case directory,
+and declare dialect/copybooks/output-ddnames in `case.json`
+(`oracle_std`, `oracle_includes`, `oracle_outputs`).
+
+Honest numbers for the same exercise: 11/31 CardDemo programs compile
+clean under `cobc -std=ibm` — the batch family. The 17 CICS online
+programs stop at IBM's `DFHAID`/`DFHBMSCA` copybooks and 3 more have
+copybook quirks; none of that is claimed as validated. One program's
+extract path is proven equivalent, not the application.
+
 ## Boundaries (deliberate non-goals)
 
 - No whole-program automatic COBOL→Java translation — skeletons + specs
