@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "legacymod"
-version = "0.1.2"
+version = "0.2.0"
 description = "Local-first, auditable mainframe-modernization platform: inventory, knowledge graph, rule mining, decomposition, specs, skeleton codegen, behavior-first validation."
 readme = "README.md"
 license = "Apache-2.0"

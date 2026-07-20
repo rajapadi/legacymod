@@ -42,6 +42,8 @@ _STAGES: dict[str, tuple[str, str]] = {
               "batch stream flows, CICS navigation, online<->batch map, capability roll-up"),
     "decompose": ("legacymod.decompose",
                   "cluster the graph into domains and migratable units with a wave plan (HITL gate)"),
+    "recommend": ("legacymod.recommend",
+                  "evidence-based future-state architecture recommendation per unit (HITL gate)"),
     "spec": ("legacymod.specgen",
              "assemble the modernization spec for an approved unit"),
     "datamig": ("legacymod.datamig",
@@ -106,6 +108,11 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("flows", help=_STAGES["flows"][1])
     sub.add_parser("decompose", help=_STAGES["decompose"][1])
 
+    sp = sub.add_parser("recommend", help=_STAGES["recommend"][1])
+    sp.add_argument("unit", nargs="?", help="unit id or name (default: all)")
+    sp.add_argument("--enrich", action="store_true",
+                    help="LLM trade-off narrative (marked, needs_review)")
+
     sp = sub.add_parser("spec", help=_STAGES["spec"][1])
     sp.add_argument("unit", help="approved unit id or name")
 
@@ -114,8 +121,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     sp = sub.add_parser("generate", help=_STAGES["generate"][1])
     sp.add_argument("unit", help="approved unit id or name")
-    sp.add_argument("--target", default="java-spring",
-                    choices=["java-spring", "airflow-dag", "openapi"])
+    sp.add_argument("--target", default=None,
+                    choices=["java-spring", "airflow-dag", "openapi"],
+                    help="omit to render every approved architecture "
+                         "recommendation for the unit")
     sp.add_argument("--llm-impl", action="store_true", dest="llm_impl",
                     help="LLM-proposed method bodies as marked drafts")
 

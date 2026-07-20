@@ -46,3 +46,12 @@ Non-obvious implementation choices, recorded per the build contract.
   modules (e.g. a COBOL stand-in for a z/OS assembler routine) are
   dropped into the case dir as compiled modules, where the runtime's
   cwd-based resolution finds them. (2026-07-20)
+- **The architecture recommender is a rules engine, not an LLM.**
+  `recommend` derives future-state fit from graph evidence with fixed
+  per-rule confidences (signal counts live in the evidence JSON; the
+  confidence only ranks how direct the inference is). The LLM's role
+  is narrating trade-offs behind `--enrich`, marked `needs_review` —
+  same one-architectural-law reasoning as everywhere else: the choice
+  must be traceable to facts a human can audit. Human-decided rows
+  (approved/rejected) are never regenerated; re-running `recommend`
+  only refreshes still-proposed rows. (2026-07-20)

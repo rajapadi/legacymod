@@ -242,20 +242,34 @@ def run(args: argparse.Namespace, cfg: Config) -> int:
             print(f"generate: spec missing ({spec_file}) - run "
                   f"`legacymod spec {unit['name']}` first")
             return 1
-        data = spec_data(store, cfg, unit)
-        out = cfg.workspace / "generated" / unit["name"] / args.target
-        if args.target == "java-spring":
-            written = _gen_java(store, cfg, data, out,
-                                getattr(args, "llm_impl", False))
-        elif args.target == "airflow-dag":
-            written = _gen_airflow(store, data, out)
+        if args.target:
+            targets = [args.target]
         else:
-            written = _gen_openapi(data, out)
+            from .recommend import (approved_targets,
+                                    sync_architecture_from_csv)
+            sync_architecture_from_csv(store, cfg)
+            targets = approved_targets(store, unit["unit_id"])
+            if not targets:
+                print(f"generate: no --target given and unit {unit['name']} "
+                      "has no approved architecture recommendation - run "
+                      "`legacymod recommend`, approve rows in "
+                      "architecture.csv, or pass --target")
+                return 1
+        data = spec_data(store, cfg, unit)
+        for target in targets:
+            out = cfg.workspace / "generated" / unit["name"] / target
+            if target == "java-spring":
+                written = _gen_java(store, cfg, data, out,
+                                    getattr(args, "llm_impl", False))
+            elif target == "airflow-dag":
+                written = _gen_airflow(store, data, out)
+            else:
+                written = _gen_openapi(data, out)
+            print(f"generate[{target}]: {len(written)} file(s) -> {out}")
+            for p in written:
+                print(f"  {p.relative_to(cfg.workspace)}")
         store.execute(
             "UPDATE units SET status='generated' WHERE unit_id=?"
             " AND status='spec_done'", (unit["unit_id"],))
         store.commit()
-        print(f"generate[{args.target}]: {len(written)} file(s) -> {out}")
-        for p in written:
-            print(f"  {p.relative_to(cfg.workspace)}")
     return 0

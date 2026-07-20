@@ -7,7 +7,10 @@ Assistant for Z + ADDI, Google Mainframe Assessment Tool + Dual Run,
 Mechanical Orchard Imogen) do — inventory, knowledge graph, current-state
 docs, business-rule mining with line-level traceability, assessment
 (complexity/clones/blockers), decomposition into migratable units,
-per-unit specs, target-code skeletons, data-migration planning, and a
+evidence-based future-state architecture recommendation (execution
+style, compute, data store, integration, UI — per unit, with
+confidence and a human gate), per-unit specs, target-code skeletons,
+data-migration planning, and a
 behavior-first equivalence harness — at $0, offline, with the LLM
 strictly optional and never trusted as the final word. The biggest
 caveat: it is an assessment-and-scaffolding platform, not a runtime — it
@@ -41,7 +44,9 @@ flowchart LR
     end
     subgraph gated pipeline
         G --> L[decompose<br/>units + waves + disposition]
+        L --> AR[recommend<br/>future-state fit:<br/>style / compute / data / UI]
         L -->|HITL: approve units.csv| M[spec]
+        AR -->|HITL: approve architecture.csv| N
         M --> N[generate<br/>java-spring / airflow / openapi]
         M --> O[datamig<br/>DDL + proposal + converters]
         N --> P[validate<br/>field-level equivalence]
@@ -115,6 +120,7 @@ lands under `workspace/`; the sample estate is never written to.
 | docs | `docs [--enrich]` | `docs/` — overview, program/job pages, CRUD matrix |
 | rules | `rules [--enrich]` | `rules.csv` — line-traceable rule catalog |
 | decompose | `decompose` | `units.csv` (HITL gate), `waves.csv`, dispositions |
+| recommend | `recommend [unit] [--enrich]` | `architecture.csv` (HITL gate) + `architecture.md` — best-fit future-state per unit, with evidence and confidence |
 | spec | `spec <unit>` | `specs/<unit>.md` |
 | datamig | `datamig <unit>` | PG DDL, relational proposal, runnable converters |
 | generate | `generate <unit> --target java-spring\|airflow-dag\|openapi` | skeletons with traceability README |
@@ -217,6 +223,15 @@ the shipped ASCII export into a GnuCOBOL indexed file, stub the one
 assembler CALL (`COBDATFT`) as a COBOL module in the case directory,
 and declare dialect/copybooks/output-ddnames in `case.json`
 (`oracle_std`, `oracle_includes`, `oracle_outputs`).
+
+**Future-state fit** (as of 2026-07-20): on the same estate the
+`recommend` stage tells the two unit families apart from evidence
+alone — the batch extract unit gets "scheduled batch processing —
+target a data pipeline, not a service" (Airflow DAGs, VSAM keys →
+PostgreSQL), while the mixed CICS unit gets a split verdict: Spring
+Boot + OpenAPI + Angular for the online half, orchestrated batch for
+the rest, with DB2→PostgreSQL and IMS-flattening called out per data
+store.
 
 Honest numbers for the same exercise: 11/31 CardDemo programs compile
 clean under `cobc -std=ibm` — the batch family. The 17 CICS online

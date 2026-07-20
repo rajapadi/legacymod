@@ -2,6 +2,27 @@
 
 All notable changes to legacymod are documented here.
 
+## [0.2.0] — 2026-07-20
+
+### Added
+- **`recommend` stage — evidence-based future-state architecture.**
+  Deterministic rules over the knowledge graph pick, per unit, the
+  best-fit execution style (online service / batch pipeline / split /
+  shared library), compute target, data store (DB2→PostgreSQL, keyed
+  VSAM→relational with a document-store alternative when repeating
+  groups are present, IMS flattening), integration style (MQ→broker,
+  file transfers, OpenAPI contract), and UI approach — every row with
+  its evidence, alternatives considered, and confidence. Output is a
+  HITL gate (`architecture.csv` + `architecture.md`); `--enrich` adds a
+  marked LLM trade-off narrative, never the decision itself.
+- **`generate` consumes approved recommendations**: with `--target`
+  omitted it renders every approved `generate_target` for the unit
+  (and errors with guidance when nothing is approved).
+- On CardDemo the recommender separates the unit families from
+  evidence alone: the batch extract unit gets "data pipeline, not a
+  service" (airflow-dag), the mixed CICS unit gets a split verdict
+  with java-spring + openapi and an Angular UI row.
+
 ## [0.1.2] — 2026-07-20
 
 First real execution of the GnuCOBOL oracle — validated end to end
