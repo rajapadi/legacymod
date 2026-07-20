@@ -6,10 +6,12 @@ import csv
 import json
 import sqlite3
 
+from pathlib import Path
+
 from legacymod.adapters.cobol import parse_cobol
 from legacymod.adapters.copybook import parse_copybook, pic_meta
 from legacymod.adapters.jcl import parse_jcl
-from legacymod.inventory import detect_encoding
+from legacymod.inventory import classify, detect_encoding
 
 from conftest import ESTATE, run_cli
 
@@ -46,6 +48,15 @@ def test_inventory_covers_estate(workspace):
 def test_broken_cobol_parse_errors_no_crash(workspace):
     inv = _inventory(workspace)
     assert int(inv["cobol/BROKEN.cbl"]["parse_errors"]) > 0
+
+
+def test_classify_standalone_proc_and_ctl():
+    # Shapes taken from AWS CardDemo, where these members were `unknown`.
+    proc = b"//REPROC PROC\n//PS010 EXEC PGM=IDCAMS\n"
+    assert classify(Path("REPROC.prc"), proc)[0] == "jcl"
+    assert classify(Path("REPROC"), proc)[0] == "jcl"       # content sniff
+    ctl = b"  REPRO INFILE(FILEIN) OUTFILE(FILEOUT)\n"
+    assert classify(Path("REPROCT.ctl"), ctl)[0] == "utility_ctl"
 
 
 def test_ebcdic_detection():

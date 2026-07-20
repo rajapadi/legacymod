@@ -2,6 +2,19 @@
 
 All notable changes to legacymod are documented here.
 
+## [0.1.1] — 2026-07-19
+
+### Fixed
+- **Inventory classification gaps found by running the pipeline against
+  AWS's open-source CardDemo estate**
+  (aws-samples/aws-mainframe-modernization-carddemo): standalone JCL
+  procedures with the common `.prc` extension now classify as `jcl`
+  (the adapter already parsed PROCs), backed by a content sniff for
+  `//name PROC` cards; standalone utility control-card members
+  (`.ctl` — IDCAMS, DB2 utility input) classify as `utility_ctl`
+  instead of `unknown`. Parsing control cards outside a JCL instream
+  context remains a roadmap item.
+
 ## [0.1.0] — 2026-07-18
 
 Initial release: the full analysis-to-validation pipeline.

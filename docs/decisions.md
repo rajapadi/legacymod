@@ -30,3 +30,10 @@ Non-obvious implementation choices, recorded per the build contract.
   PSB scheduling, neither present in a source-only estate. (2026-07-18)
 - **CSV exports are UTF-8 without BOM; detail strings stay ASCII** so
   Excel-on-Windows double-click opens don't mangle text. (2026-07-18)
+- **Standalone `.ctl` members are classified `utility_ctl` with no
+  adapter.** Found by running the pipeline against AWS CardDemo:
+  control cards shipped as PDS members (IDCAMS REPRO, DB2 utility
+  input) landed as `unknown`. Classification restores inventory
+  accuracy; parsing is deliberately not duplicated outside the JCL
+  adapter's instream/step context, where the same cards carry job/step
+  provenance. (2026-07-19)

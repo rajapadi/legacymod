@@ -27,6 +27,8 @@ _EXT_MAP: dict[str, tuple[str, str]] = {
     ".cpy": ("copybook", "COBOL"),
     ".jcl": ("jcl", "JCL"),
     ".proc": ("jcl", "JCL"),
+    ".prc": ("jcl", "JCL"),
+    ".ctl": ("utility_ctl", "CTL"),
     ".sql": ("db2ddl", "SQL"),
     ".ddl": ("db2ddl", "SQL"),
     ".rexx": ("rexx", "REXX"),
@@ -48,6 +50,8 @@ def _sniff(text: str) -> tuple[str, str] | None:
     if "/* REXX */" in up[:200]:
         return "rexx", "REXX"
     if re.search(r"^\s*//\w+\s+JOB\s", up, re.M):
+        return "jcl", "JCL"
+    if re.search(r"^\s*//\w+\s+PROC\b", up, re.M):
         return "jcl", "JCL"
     if "DFHMSD" in up:
         return "cics_bms", "BMS"
