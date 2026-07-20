@@ -1,0 +1,19 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PAYINQ.
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       COPY EMPREC.
+       01  WS-RESP               PIC S9(8) COMP.
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           EXEC CICS RECEIVE MAP('PAYMAP') MAPSET('PAYMAP')
+               RESP(WS-RESP)
+           END-EXEC.
+           EXEC CICS READ FILE('EMPMAST') INTO(EMP-RECORD)
+               RIDFLD(EMP-ID) RESP(WS-RESP)
+           END-EXEC.
+           EXEC CICS SEND MAP('PAYMAP') MAPSET('PAYMAP')
+               ERASE FREEKB
+           END-EXEC.
+           EXEC CICS RETURN TRANSID('PYIQ')
+           END-EXEC.

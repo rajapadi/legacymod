@@ -1,0 +1,4 @@
+capability,seed_type,seed_name
+Payroll Calculation,program,PAYCALC
+Payroll Distribution,job,XFERJOB
+Employee Inquiry,transaction,PYIQ

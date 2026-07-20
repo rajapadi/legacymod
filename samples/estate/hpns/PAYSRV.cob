@@ -1,0 +1,14 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. PAYSRV.
+      * PATHWAY SERVERCLASS PAY-SERVER  (HP NonStop Pathway server)
+       DATA DIVISION.
+       WORKING-STORAGE SECTION.
+       01  WS-REQUEST            PIC X(80).
+       01  WS-REPLY              PIC X(80).
+       01  WS-ROUNDED-AMT        PIC S9(7)V99.
+       PROCEDURE DIVISION.
+       MAIN-PARA.
+           MOVE SPACES TO WS-REPLY.
+           ENTER TAL "PAY_ROUND" USING WS-REQUEST, WS-ROUNDED-AMT.
+           MOVE WS-ROUNDED-AMT TO WS-REPLY.
+           GOBACK.

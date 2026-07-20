@@ -1,0 +1,5 @@
+{
+ "record": "PAY-RECORD",
+ "format": "flat",
+ "description": "modernized output matches the legacy baseline"
+}

@@ -1,0 +1,6 @@
+* text=auto
+*.dat binary
+samples/fixtures/** -text
+*.cbl text
+*.cob text
+*.jcl text

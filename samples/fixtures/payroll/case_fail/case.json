@@ -1,0 +1,5 @@
+{
+ "record": "PAY-RECORD",
+ "format": "flat",
+ "description": "PAY-GROSS deliberately wrong in record 1 (1234.99 vs 1234.50)"
+}

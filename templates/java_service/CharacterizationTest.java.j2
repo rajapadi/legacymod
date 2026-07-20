@@ -1,0 +1,24 @@
+package {{ package }};
+
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.fail;
+
+/**
+ * Failing-by-design characterization tests for unit {{ unit.name }}.
+ * Each test corresponds to a rule from the catalog; it must be replaced
+ * by a real fixture-driven assertion (see `legacymod validate`) before
+ * the unit can claim equivalence. Failing here is the point: green
+ * without evidence would be a lie.
+ */
+class {{ class_name }}CharacterizationTest {
+
+{% for m in methods %}
+    @Test
+    void {{ m.method_name }}_matchesLegacyBehavior() {
+        fail("Not yet characterized: rule {{ m.rule_id }} "
+             + "({{ m.program }} lines {{ m.lines }}). Capture a fixture with "
+             + "`legacymod validate {{ unit.name }}` and assert it here.");
+    }
+
+{% endfor %}
+}

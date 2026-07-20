@@ -1,0 +1,40 @@
+package {{ package }}.service;
+
+import org.springframework.stereotype.Service;
+
+/**
+ * Skeleton service for unit {{ unit.name }} ({{ unit.unit_id }}).
+ * One stub per approved business rule; bodies intentionally throw until
+ * implemented against the spec ({{ spec_path }}) and proven by the
+ * characterization tests.
+ */
+@Service
+public class {{ class_name }}Service {
+
+{% for m in methods %}
+    /**
+     * Rule {{ m.rule_id }} ({{ m.category }}) - {{ m.program }} lines {{ m.lines }}.
+     *
+     * <pre>
+{% for line in m.snippet.splitlines() %}
+     * {{ line }}
+{% endfor %}
+     * </pre>
+{% if m.plain_english %}
+     * <p>{{ m.plain_english }}</p>
+{% endif %}
+     */
+    public void {{ m.method_name }}() {
+{% if m.draft %}
+        // ---- LLM-PROPOSED DRAFT (origin=llm, needs_review) ----
+{% for line in m.draft.splitlines() %}
+        // {{ line }}
+{% endfor %}
+        // ---- END DRAFT - do not ship unreviewed ----
+{% endif %}
+        throw new UnsupportedOperationException(
+            "Implement from rule {{ m.rule_id }} ({{ m.program }} lines {{ m.lines }})");
+    }
+
+{% endfor %}
+}

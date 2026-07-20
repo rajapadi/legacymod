@@ -1,0 +1,32 @@
+# Generated skeleton - unit {{ unit.name }} ({{ unit.unit_id }})
+
+**This is a skeleton for a team to extend, not a translation.** Method
+bodies throw until implemented against the spec and proven equivalent by
+the validation harness. Every generated element traces to a legacy
+artifact below.
+
+Spec of record: `{{ spec_path }}`
+
+## Traceability
+
+| generated element | legacy source |
+|---|---|
+{% for rec in records %}
+| `entity/{{ rec.class_name }}.java` | record {{ rec.legacy_name }} ({{ rec.source }}) |
+{% endfor %}
+| `service/{{ class_name }}Service.java` | rules: {% for m in methods %}{{ m.rule_id }} ({{ m.program }} {{ m.lines }}){% if not loop.last %}, {% endif %}{% endfor %} |
+| `api/{{ class_name }}Controller.java` | interfaces: {% for i in interfaces %}{{ i.legacy }}{% if not loop.last %}, {% endif %}{% endfor %} |
+| `{{ class_name }}CharacterizationTest.java` | behavior baseline per rule (failing by design) |
+
+## Field-level mapping
+
+{% for rec in records %}
+### {{ rec.class_name }} <- {{ rec.legacy_name }}
+
+| Java field | legacy field | PIC | source line |
+|---|---|---|---|
+{% for f in rec.fields %}
+| {{ f.java_name }} | {{ f.legacy_name }} | {{ f.pic }} {{ f.usage }} | {{ f.source }}:{{ f.line }} |
+{% endfor %}
+
+{% endfor %}

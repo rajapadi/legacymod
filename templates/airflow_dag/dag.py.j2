@@ -1,0 +1,33 @@
+"""Airflow DAG skeleton for unit {{ unit.name }} ({{ unit.unit_id }}).
+
+Generated from the scheduler net + dataset handoffs; each task is an
+EmptyOperator placeholder to be replaced with the real modernized step.
+Legacy traceability is in each task's doc_md.
+"""
+
+from datetime import datetime
+
+from airflow import DAG
+from airflow.operators.empty import EmptyOperator
+
+with DAG(
+    dag_id="{{ unit.name | lower }}_batch",
+    description="Modernized skeleton of the legacy {{ unit.name }} stream",
+    start_date=datetime(2026, 1, 1),
+    schedule={{ schedule | tojson }},   # from scheduler TIME=/calendar when known
+    catchup=False,
+    tags=["legacymod", "{{ unit.name | lower }}"],
+) as dag:
+{% for t in tasks %}
+    {{ t.task_id }} = EmptyOperator(
+        task_id="{{ t.task_id }}",
+        doc_md="Legacy job {{ t.job }}{% if t.note %} - {{ t.note }}{% endif %}",
+    )
+{% endfor %}
+
+{% for d in deps %}
+    {{ d.up }} >> {{ d.down }}
+{% endfor %}
+{% if not deps %}
+    # no inter-job dependencies derived yet (scheduler facts not loaded)
+{% endif %}

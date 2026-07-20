@@ -1,0 +1,28 @@
+package {{ package }}.entity;
+
+{% if rec.fields | selectattr("java_type", "equalto", "BigDecimal") | list %}
+import java.math.BigDecimal;
+
+{% endif %}
+/**
+ * Generated from legacy record {{ rec.legacy_name }}
+ * ({{ rec.source }}); every field carries its PIC of origin.
+ */
+public class {{ rec.class_name }} {
+
+{% for f in rec.fields %}
+    /** Legacy {{ f.legacy_name }} - PIC {{ f.pic }} {{ f.usage }}, {{ f.length }} byte(s){% if f.redefines %}, REDEFINES {{ f.redefines }}{% endif %}. */
+    private {{ f.java_type }} {{ f.java_name }};
+
+{% endfor %}
+{% for f in rec.fields %}
+    public {{ f.java_type }} get{{ f.java_name_cap }}() {
+        return {{ f.java_name }};
+    }
+
+    public void set{{ f.java_name_cap }}({{ f.java_type }} value) {
+        this.{{ f.java_name }} = value;
+    }
+
+{% endfor %}
+}

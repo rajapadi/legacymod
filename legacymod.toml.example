@@ -1,0 +1,18 @@
+# legacymod configuration. Copy to legacymod.toml next to where you run the CLI.
+# Everything here is optional; the defaults shown are what you get with no file.
+
+# Where all outputs (SQLite store, CSVs, docs, specs, generated code) land.
+# The ingested source tree is never written to.
+workspace = "./workspace"
+
+[llm]
+# Provider "stub" is the default: deterministic canned analyses, zero network,
+# zero API keys — the whole pipeline and test suite run with it.
+# Provider "claude_cli" shells out to the `claude` CLI if it is on PATH.
+# No API keys are ever read from this file.
+provider = "stub"
+model = "stub-v1"
+
+# Utilities that may legitimately have no source member in the estate.
+# Uncomment to override the built-in allowlist (see config.py for the default).
+# known_utilities = ["IKJEFT01", "IEFBR14", "IDCAMS", "SORT"]

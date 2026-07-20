@@ -1,0 +1,24 @@
+! PAYUTIL - Tandem TAL payroll utility procedures.
+INT PROC pay_round(amount);
+  INT amount;
+BEGIN
+  ! Round to nearest whole unit.
+  IF amount < 0 THEN
+    amount := amount - 50
+  ELSE
+    amount := amount + 50;
+  RETURN amount / 100;
+END;
+
+STRING PROC pay_format(amount, buf);
+  INT amount;
+  STRING .buf;
+BEGIN
+  SUBPROC digits;
+  BEGIN
+    buf ':=' "0000000";
+  END;
+  CALL digits;
+  CALL pay_round(amount);
+  RETURN buf;
+END;

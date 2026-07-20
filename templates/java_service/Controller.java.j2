@@ -1,0 +1,24 @@
+package {{ package }}.api;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * REST stubs for unit {{ unit.name }} - one endpoint per legacy
+ * interface (see the spec's interface table for the mapping).
+ */
+@RestController
+public class {{ class_name }}Controller {
+
+{% for i in interfaces %}
+    /** Legacy {{ i.kind }}: {{ i.legacy }} - {{ i.proposal }}. */
+    @GetMapping("/{{ unit.name | lower }}/{{ i.legacy | lower | replace(".", "-") }}")
+    public ResponseEntity<String> {{ i.method_name }}() {
+        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+            .body("Stub for legacy {{ i.kind }} {{ i.legacy }}");
+    }
+
+{% endfor %}
+}

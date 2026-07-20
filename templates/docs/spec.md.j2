@@ -1,0 +1,101 @@
+# Modernization spec - unit {{ unit.name }} ({{ unit.unit_id }})
+
+**Verdict up front:** disposition recommendation is
+**{{ unit.disposition }}** (effort {{ unit.effort_tshirt }}, status
+{{ unit.status }}). {{ evidence.reason | default("") }}
+Scope: {{ programs | length }} program(s), {{ jobs | length }} job(s),
+{{ screens | length }} screen(s), {{ rules_approved | length }} approved
+rule(s) carried verbatim below. Numbers are from deterministic parsing;
+open questions are listed at the end rather than glossed over.
+
+## 1. Scope
+
+- Programs: {{ programs | join(", ") if programs else "(none)" }}
+- Jobs: {{ jobs | join(", ") if jobs else "(none)" }}
+- Screens: {{ screens | join(", ") if screens else "(none)" }}
+- Transactions: {{ transactions | join(", ") if transactions else "(none)" }}
+
+## 2. Interfaces in/out
+
+{% if interfaces %}
+| legacy | kind | proposed modern equivalent |
+|---|---|---|
+{% for i in interfaces %}
+| {{ i.legacy }} | {{ i.kind }} | {{ i.proposal }} |
+{% endfor %}
+{% else %}
+No interfaces derived from the graph for this unit.
+{% endif %}
+
+## 3. Data model (PIC-derived)
+
+{% for rec in records %}
+### {{ rec.legacy_name }}{% if rec.copybook %} (copybook {{ rec.copybook }}){% endif %}
+
+Source: `{{ rec.source }}` - target class `{{ rec.class_name }}`
+
+| field | PIC | usage | len | dec | proposed type | notes |
+|---|---|---|---:|---:|---|---|
+{% for f in rec.fields %}
+| {{ f.legacy_name }} | {{ f.pic }} | {{ f.usage }} | {{ f.length }} | {{ f.decimals }} | {{ f.java_type }} | {% if f.redefines %}REDEFINES {{ f.redefines }} - human decision needed{% endif %}{% if f.occurs %}OCCURS {{ f.occurs }} - child table/collection{% endif %} |
+{% endfor %}
+
+{% endfor %}
+{% if not records %}
+No record layouts resolved for this unit.
+{% endif %}
+
+## 4. Business rules (approved - verbatim from the catalog)
+
+{% for r in rules_approved %}
+### {{ r.rule_id }} - {{ r.category }} ({{ r.program }} lines {{ r.source_lines }})
+
+```cobol
+{{ r.snippet }}
+```
+
+{% if r.plain_english %}{{ r.plain_english }}{% endif %}
+
+{% endfor %}
+{% if not rules_approved %}
+No rules approved yet for this unit's programs.
+{% endif %}
+{% if rules_other %}
+Not yet approved (excluded from build scope until reviewed):
+{% for r in rules_other %}
+- {{ r.c }} rule(s) in status {{ r.status }}
+{% endfor %}
+{% endif %}
+
+## 5. NFRs
+
+{% if volumes %}
+| dataset | avg bytes/run | records/run | as of |
+|---|---:|---:|---|
+{% for v in volumes %}
+| {{ v.dataset }} | {{ v.avg_bytes_per_run }} | {{ v.records_per_run }} | {{ v.as_of }} |
+{% endfor %}
+{% else %}
+Volume data not loaded (run `legacymod runs <job_runs.csv>` with the
+documented CSV exports to populate this section).
+{% endif %}
+- Batch-window and latency targets: capture from operations before build.
+
+## 6. Open questions
+
+{% for m in missing %}
+- Missing artifact: {{ m.kind }} **{{ m.name }}** referenced by
+  {{ m.referenced_by }} (line {{ m.reference_line }}) - source not in the
+  estate; behavior unknown.
+{% endfor %}
+{% for c in dynamic_calls %}
+- Dynamic CALL `{{ c.name }}` (line {{ c.source_line_start }}) - target
+  resolved at run time; enumerate its values before migration.
+{% endfor %}
+{% for f in redefines %}
+- REDEFINES: {{ f.legacy_name }} redefines {{ f.redefines }} - pick a
+  single canonical representation.
+{% endfor %}
+{% if not missing and not dynamic_calls and not redefines %}
+- None recorded by the deterministic passes.
+{% endif %}
