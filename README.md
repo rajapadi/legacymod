@@ -183,7 +183,9 @@ The platform is exercised against
 [AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo)
 (Apache-2.0), a full COBOL/CICS/VSAM/JCL credit-card application built
 as a modernization-tooling test target — code this repo's authors never
-saw while writing the parsers.
+saw while writing the parsers. The complete workspace output (graph,
+docs, rules, scaffolds, equivalence fixture) is browsable at
+[legacymod-carddemo](https://github.com/rajapadi/legacymod-carddemo).
 
 **Analysis half** (as of 2026-07-19): 240 artifacts classified, 34,687
 facts from 14 adapters, a 1,000-node knowledge graph — no crashes.
