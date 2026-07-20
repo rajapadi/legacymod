@@ -6,9 +6,13 @@ Fixture layout: ``workspace/fixtures/<unit>/case_*/`` with
 
     {"record": "PAY-RECORD",       # layout for flat comparison
      "format": "flat" | "csv",
+     "encoding": "ebcdic" | "ascii",  # flat-field decode, default ebcdic
      "legacy_cmd": [...],          # optional: produce expected.* locally
      "modern_cmd": [...],          # optional: produce actual.* locally
-     "oracle_source": "cobol/X.cbl"  # optional GnuCOBOL oracle
+     "oracle_source": "cbl/X.cbl",   # optional GnuCOBOL oracle
+     "oracle_std": "ibm",            # optional cobc -std dialect
+     "oracle_includes": ["cpy"],     # copybook dirs, estate-relative
+     "oracle_outputs": {"OUTFILE": "expected.dat"}  # ddname -> file
     }
 
 Fixtures are captured from the real system when available; when the
@@ -16,7 +20,13 @@ dialect allows, ``oracle_source`` lets GnuCOBOL (``cobc``, feature-
 detected on PATH — skipped gracefully when absent) act as a local
 execution oracle to (re)generate ``expected.*``. SELECT...ASSIGN ddnames
 are mapped to fixture files via ``DD_<ddname>`` environment variables,
-the GnuCOBOL convention.
+the GnuCOBOL convention: every ``input.<DDNAME>`` file in the case dir
+maps automatically, and ``oracle_outputs`` maps the program's output
+ddnames onto case files (without it a GnuCOBOL program writes to the
+literal assign name and the regenerated baseline never lands in
+``expected.*``). Modules the program CALLs may be dropped into the case
+directory as compiled ``.dll``/``.so`` files — the oracle runs with the
+case directory as cwd, where GnuCOBOL resolves dynamic calls.
 
 The comparator diffs expected vs actual **field by field** — EBCDIC
 (cp037) and packed-decimal aware for flat files via the record layout;
@@ -61,7 +71,8 @@ def _find_record_layout(store: Store, cfg: Config, unit: dict,
                      f"{unit['name']}'s data model")
 
 
-def _unpack(layout: list[dict], length: int, data: bytes) -> list[dict]:
+def _unpack(layout: list[dict], length: int, data: bytes,
+            codec: str = "cp037") -> list[dict]:
     """EBCDIC/packed-aware record split, reusing the datamig field kinds."""
     records = []
     for base in range(0, len(data) - length + 1, length):
@@ -69,7 +80,7 @@ def _unpack(layout: list[dict], length: int, data: bytes) -> list[dict]:
         for f in layout:
             chunk = data[base + f["offset"]: base + f["offset"] + f["length"]]
             if f["kind"] == "display_char":
-                rec[f["name"]] = chunk.decode("cp037").rstrip()
+                rec[f["name"]] = chunk.decode(codec).rstrip()
             elif f["kind"] == "comp3":
                 h = chunk.hex()
                 body, sign = h[:-1], h[-1]
@@ -82,7 +93,7 @@ def _unpack(layout: list[dict], length: int, data: bytes) -> list[dict]:
             elif f["kind"] == "comp":
                 rec[f["name"]] = str(int.from_bytes(chunk, "big", signed=True))
             else:
-                s = chunk.decode("cp037")
+                s = chunk.decode(codec)
                 if f["decimals"]:
                     s = s[:-f["decimals"]] + "." + s[-f["decimals"]:]
                 rec[f["name"]] = s.strip()
@@ -91,10 +102,11 @@ def _unpack(layout: list[dict], length: int, data: bytes) -> list[dict]:
 
 
 def compare_flat(layout: list[dict], length: int, expected: bytes,
-                 actual: bytes) -> list[str]:
+                 actual: bytes, encoding: str = "ebcdic") -> list[str]:
+    codec = "latin-1" if encoding == "ascii" else "cp037"
     mismatches = []
-    exp = _unpack(layout, length, expected)
-    act = _unpack(layout, length, actual)
+    exp = _unpack(layout, length, expected, codec)
+    act = _unpack(layout, length, actual, codec)
     if len(exp) != len(act):
         mismatches.append(f"record-count expected={len(exp)} actual={len(act)}")
     for i, (e, a) in enumerate(zip(exp, act), 1):
@@ -128,24 +140,36 @@ def _run_side(cmd: list[str], cwd: Path) -> float:
     return (time.perf_counter() - t0) * 1000
 
 
-def _oracle(case_dir: Path, source_rel: str, store: Store) -> float | None:
-    """GnuCOBOL execution oracle: compile + run to produce expected.dat."""
+def _oracle(case_dir: Path, meta: dict, store: Store) -> float | None:
+    """GnuCOBOL execution oracle: compile + run to produce expected.*."""
     cobc = shutil.which("cobc")
     if not cobc:
         log.info("cobc not on PATH - GnuCOBOL oracle skipped for %s",
                  case_dir.name)
         return None
-    src = store.source_root() / source_rel
+    # the oracle runs with the case dir as cwd while workspace paths are
+    # usually relative to the invocation dir - everything must be absolute
+    case_dir = case_dir.resolve()
+    src = (store.source_root() / meta["oracle_source"]).resolve()
     exe = case_dir / "oracle.exe"
-    subprocess.run([cobc, "-x", "-free" if src.suffix == ".cob" else "-fixed",
-                    "-o", str(exe), str(src)], check=True,
-                   capture_output=True, timeout=300)
+    cmd = [cobc, "-x", "-free" if src.suffix == ".cob" else "-fixed"]
+    if meta.get("oracle_std"):
+        cmd += ["-std", meta["oracle_std"]]
+    for inc in meta.get("oracle_includes", []):
+        cmd += ["-I", str((store.source_root() / inc).resolve())]
+    cmd += ["-o", str(exe), str(src)]
+    subprocess.run(cmd, check=True, capture_output=True, timeout=300)
     env = dict(**__import__("os").environ)
     for f in case_dir.glob("input.*"):
         # map every input file to its ddname (input.EMPMAST -> DD_EMPMAST)
         dd = f.suffix.lstrip(".").upper()
         env[f"DD_{dd}"] = str(f)
         env[dd] = str(f)
+    for dd, fname in meta.get("oracle_outputs", {}).items():
+        # without this, output lands in a file named after the literal
+        # ASSIGN target and the regenerated baseline never reaches expected.*
+        env[f"DD_{dd.upper()}"] = str(case_dir / fname)
+        env[dd.upper()] = str(case_dir / fname)
     t0 = time.perf_counter()
     subprocess.run([str(exe)], cwd=case_dir, env=env, check=True,
                    capture_output=True, timeout=300)
@@ -185,15 +209,35 @@ def run(args: argparse.Namespace, cfg: Config) -> int:
             meta = json.loads((case_dir / "case.json").read_text(
                 encoding="utf-8")) if (case_dir / "case.json").is_file() else {}
             legacy_ms = modern_ms = None
+            side_errors = []
             if meta.get("oracle_source"):
                 try:
-                    legacy_ms = _oracle(case_dir, meta["oracle_source"], store)
+                    legacy_ms = _oracle(case_dir, meta, store)
                 except subprocess.CalledProcessError as exc:
-                    log.warning("oracle failed for %s: %s", case_dir.name, exc)
+                    detail = ((exc.stderr or b"") + (exc.stdout or b"")
+                              ).decode(errors="replace").strip()
+                    log.warning("oracle failed for %s: %s", case_dir.name,
+                                detail or exc)
+                    side_errors.append("oracle failed: "
+                                       + (detail.splitlines()[-1:] or ["?"])[0])
             if meta.get("legacy_cmd"):
-                legacy_ms = _run_side(meta["legacy_cmd"], case_dir)
+                try:
+                    legacy_ms = _run_side(meta["legacy_cmd"], case_dir)
+                except subprocess.CalledProcessError as exc:
+                    side_errors.append("legacy_cmd failed: rc="
+                                       f"{exc.returncode}")
             if meta.get("modern_cmd"):
-                modern_ms = _run_side(meta["modern_cmd"], case_dir)
+                try:
+                    modern_ms = _run_side(meta["modern_cmd"], case_dir)
+                except subprocess.CalledProcessError as exc:
+                    side_errors.append("modern_cmd failed: rc="
+                                       f"{exc.returncode}")
+            if side_errors:
+                # a side that failed to execute is a failed case, never a
+                # crash: the report has to say so in the results table
+                results.append((case_dir.name, 0, side_errors, legacy_ms,
+                                modern_ms))
+                continue
             expected = next(iter(case_dir.glob("expected.*")), None)
             actual = next(iter(case_dir.glob("actual.*")), None)
             if not expected or not actual:
@@ -208,7 +252,8 @@ def run(args: argparse.Namespace, cfg: Config) -> int:
                     store, cfg, unit, meta.get("record", ""))
                 mismatches = compare_flat(layout, length,
                                           expected.read_bytes(),
-                                          actual.read_bytes())
+                                          actual.read_bytes(),
+                                          meta.get("encoding", "ebcdic"))
             results.append((case_dir.name, 0 if mismatches else 1,
                             mismatches, legacy_ms, modern_ms))
 

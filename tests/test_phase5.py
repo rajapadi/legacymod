@@ -48,6 +48,45 @@ def test_compare_flat_record_count():
     assert any("record-count" in m for m in mism)
 
 
+def test_compare_flat_ascii_encoding():
+    layout = [{"name": "F1", "offset": 0, "length": 3, "kind": "display_char",
+               "digits": 0, "decimals": 0, "signed": 0}]
+    mism = compare_flat(layout, 3, b"ABC", b"ABD", "ascii")
+    assert mism == ["record 1 field F1: expected 'ABC' actual 'ABD'"]
+    assert compare_flat(layout, 3, b"ABC", b"ABC", "ascii") == []
+
+
+def test_oracle_cmd_env_construction(tmp_path, monkeypatch):
+    """The oracle must honor dialect, includes, and output-DD mapping
+    (shapes taken from the CardDemo CBACT01C fixture)."""
+    from legacymod import validate as v
+
+    calls = []
+    monkeypatch.setattr(v.shutil, "which", lambda name: "cobc")
+    monkeypatch.setattr(v.subprocess, "run",
+                        lambda cmd, **kw: calls.append((cmd, kw.get("env"))))
+
+    class FakeStore:
+        def source_root(self):
+            return tmp_path / "estate"
+
+    case = tmp_path / "case_x"
+    case.mkdir()
+    (case / "input.ACCTFILE").write_bytes(b"x")
+    meta = {"oracle_source": "cbl/CBACT01C.cbl", "oracle_std": "ibm",
+            "oracle_includes": ["cpy"],
+            "oracle_outputs": {"OUTFILE": "expected.dat"}}
+    assert v._oracle(case, meta, FakeStore()) is not None
+
+    compile_cmd = calls[0][0]
+    assert "-std" in compile_cmd and "ibm" in compile_cmd
+    inc = compile_cmd[compile_cmd.index("-I") + 1]
+    assert inc.endswith("cpy")
+    run_env = calls[1][1]
+    assert run_env["DD_ACCTFILE"].endswith("input.ACCTFILE")
+    assert run_env["DD_OUTFILE"].endswith("expected.dat")
+
+
 def test_compare_csv_column_aware(tmp_path):
     a = tmp_path / "e.csv"
     b = tmp_path / "a.csv"

@@ -2,6 +2,34 @@
 
 All notable changes to legacymod are documented here.
 
+## [0.1.2] — 2026-07-20
+
+First real execution of the GnuCOBOL oracle — validated end to end
+against AWS CardDemo: CBACT01C compiled and run under GnuCOBOL 3.2 as
+the legacy side, a Python re-implementation as the modern side, 50
+accounts compared field-by-field to equivalence PASS. Everything below
+was found by that exercise.
+
+### Added
+- **Oracle options in `case.json`** — `oracle_std` (cobc dialect),
+  `oracle_includes` (estate-relative copybook dirs), and
+  `oracle_outputs` (ddname → case file). Without the output mapping a
+  GnuCOBOL program writes to the literal ASSIGN name and the
+  regenerated baseline never reaches `expected.*`.
+- **`encoding` option** (`ebcdic` default, `ascii`) for flat-field
+  comparison, so ASCII-runtime fixtures produce readable values in
+  mismatch reports.
+
+### Fixed
+- **Oracle DD paths are resolved absolute.** They were built from the
+  (usually relative) workspace path but consumed by a process whose cwd
+  is the case directory — every input open failed with FILE STATUS 35
+  when the workspace was given as a relative path.
+- **A failing oracle/`legacy_cmd`/`modern_cmd` is now a recorded case
+  failure** (named in the report with the runtime's last error line)
+  instead of an unhandled traceback; oracle failures log stdout too,
+  which is where batch programs print which file failed.
+
 ## [0.1.1] — 2026-07-19
 
 ### Fixed

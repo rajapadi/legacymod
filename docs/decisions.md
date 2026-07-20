@@ -37,3 +37,12 @@ Non-obvious implementation choices, recorded per the build contract.
   accuracy; parsing is deliberately not duplicated outside the JCL
   adapter's instream/step context, where the same cards carry job/step
   provenance. (2026-07-19)
+- **Oracle fixture contract is explicit, not inferred.** First real
+  oracle run (CardDemo CBACT01C under GnuCOBOL 3.2) showed the compile
+  needs dialect and copybook dirs and the run needs output-ddname
+  mapping; all three are per-case `case.json` keys (`oracle_std`,
+  `oracle_includes`, `oracle_outputs`) rather than global config,
+  because they are properties of the program under test. CALLed
+  modules (e.g. a COBOL stand-in for a z/OS assembler routine) are
+  dropped into the case dir as compiled modules, where the runtime's
+  cwd-based resolution finds them. (2026-07-20)
